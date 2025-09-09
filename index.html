@@ -1,53 +1,76 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>WebSocket Test</title>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 </head>
+
 <body>
-<h2>WebSocket Test</h2>
-<button onclick="connect()">Connect</button>
-<button onclick="sendMessage()">Send</button>
-<input type="text" id="inputMsg">
-<div id="output"></div>
+    <h2>WebSocket Test</h2>
+    <span>Token:</span>
+    <input type="text" id="token">
+    <span>Company ID:</span>
+    <input type="text" id="companyId">
+    <button onclick="connect()">Connect</button>
+    <br>
+    <br>
+    <button onclick="sendMessage()">Send</button>
+    <input type="text" id="inputMsg">
+    <div id="output"></div>
 
-<script>
-    let stompClient = null;
-    const accessToken = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0QG5vdmlvLmNvbSIsImF1ZCI6IldFQiIsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTc1NTc1NjI1NiwiZXhwIjoxNzU4MzQ4MjU2LCJhdXRob3JpdGllcyI6IlJPTEVfQ09NUEFOWV9BRE1JTiIsInVzZXJJZCI6MywidXNlckZ1bGxOYW1lIjoiVGVzdGcgVXNlciIsInR5cGUiOiJVU0VSIiwiaW50ZXJuYWxfdGVhbSI6ZmFsc2UsInRva2VuVHlwZSI6IkFDQ0VTU19UT0tFTiIsInVzZXJDb21wYW55SWQiOjI0fQ.OjWjpNafAQ7yFPopGzcZkly2eOLFCAnQHBkO2-2tJh9KsIoXFthkDLd43EoZ9uneCpQme3WwxTwAuRDDTmYsrXBf_brQzcJYTTfF8t0XfaP6vLqMhwDjO3Q-qzn6YgoYUPyv187NAn3V_J7HNcQ8XVyAKVX1s3qjjA2gqwCeeXGW8Rrcq66estd3BCUh05G_5IDjEzkxh-eIpq07VpxMFsPs3DsvfWXL-mQsshrsxBJ6xzu6WKuGTbCCOE-6GgdRNiagze-o68WewbGYcY4xIxijGGYbsWxF3TmKB00A4TQ-vK1UGB8Z0tHmvTTw1lDGGO-3ysYuJ1KomUodiNrrMQ"; // JWT token here
-    const companyId = 24;
+    <script>
+        let stompClient = null;
+        let accessToken
+        let companyId
 
-    function connect() {
-        const socket = new SockJS("https://api.dev.novio-eld.com/core/eld-websocket");
-        stompClient = Stomp.over(socket);
+        function connect() {
+            accessToken = document.getElementById('token').value
+            companyId = document.getElementById('companyId').value
+            console.log('token', token);
+            console.log('cID', companyId);
 
-        stompClient.connect(
-            { "access_token": accessToken },
-            function (frame) {
-                console.log("Connected: " + frame);
-                stompClient.subscribe("/core/topic/notification/" + companyId, function (message) {
-                    console.log("Get message :", message)
-                    const received = JSON.parse(message.body);
-                    console.log("Received :", received)
-                    document.getElementById("output").innerText += `\n📩 ${received.title}: ${received.description}`;
-                });
-            },
-            function (error) {
-                console.error("Connection error:", error);
+            if (!accessToken || !companyId) {
+                alert(!accessToken ? 'enter token' : 'enter company ID')
+                return
             }
-        );
-    }
 
-    function sendMessage() {
-        const msg = document.getElementById("inputMsg").value;
-        const payload = {
-            companyId: companyId,
-            title: "Test title",
-            description: msg
-        };
-        stompClient.send("/core/app/send", {}, JSON.stringify(payload));
-    }
-</script>
+
+            const socket = new SockJS("https://api.dev.novio-eld.com/core/eld-websocket");
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({
+                    "access_token": accessToken
+                },
+                function (frame) {
+                    console.log("Connected: " + frame);
+                    stompClient.subscribe("/core/topic/notification/" + companyId, function (message) {
+                        console.log("Get message :", message)
+                        const received = JSON.parse(message.body);
+                        console.log("Received :", received)
+                        document.getElementById("output").innerText +=
+                            `\n📩 ${received.title}: ${received.description}`;
+                    });
+                },
+                function (error) {
+                    alert('Connection error', JSON.stringify(error))
+                    console.error("Connection error:", error);
+                }
+            );
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById("inputMsg").value;
+            const payload = {
+                companyId: companyId,
+                title: "Test title",
+                description: msg
+            };
+            stompClient.send("/core/app/send", {}, JSON.stringify(payload));
+        }
+    </script>
 </body>
+
 </html>
